@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Nómina y Horas Extras Colombia</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#16a34a',
+              600: '#15803d',
+              700: '#166534',
+              900: '#14532d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Estilos para impresión limpia del volante de nómina */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #print-receipt, #print-receipt * {
+        visibility: visible;
+      }
+      #print-receipt {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 20px;
+        background: white !important;
+        color: black !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+      -webkit-appearance: none; 
+      margin: 0; 
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased font-sans min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="p-2 bg-emerald-600 text-white rounded-xl shadow-md">
+          <i data-lucide="calculator" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900 tracking-tight leading-tight">NóminaExpress CO</h1>
+          <p class="text-xs text-slate-500 font-medium">Liquidación Laboral & Horas Extras (CST)</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button id="btn-demo" class="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center space-x-1.5">
+          <i data-lucide="sparkles" class="w-4 h-4 text-emerald-600"></i>
+          <span>Cargar Ejemplo</span>
+        </button>
+        <button id="btn-reset" class="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center space-x-1.5">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+          <span>Limpiar</span>
+        </button>
+        <button id="btn-print" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow transition-colors flex items-center space-x-1.5">
+          <i data-lucide="printer" class="w-4 h-4"></i>
+          <span>Imprimir Recibo</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-grow">
+    
+    <!-- Top Summary Banner -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center space-x-4">
+        <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+          <i data-lucide="clock" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Valor Hora Base (VHO)</p>
+          <h3 id="card-vho" class="text-xl font-bold text-slate-800">$0</h3>
+          <p id="card-vho-detail" class="text-[11px] text-slate-500">División sueldo / horas</p>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center space-x-4">
+        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+          <i data-lucide="trending-up" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Devengado Bruto</p>
+          <h3 id="card-devengado" class="text-xl font-bold text-slate-800">$0</h3>
+          <p class="text-[11px] text-slate-500">Salario + Horas + Auxilio</p>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center space-x-4">
+        <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+          <i data-lucide="badge-percent" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Deducciones</p>
+          <h3 id="card-deducciones" class="text-xl font-bold text-slate-800">$0</h3>
+          <p class="text-[11px] text-slate-500">Salud, Pensión y Otros</p>
+        </div>
+      </div>
+
+      <div class="bg-gradient-to-br from-emerald-600 to-teal-700 p-5 rounded-2xl text-white shadow-md flex items-center space-x-4">
+        <div class="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+          <i data-lucide="wallet" class="w-6 h-6 text-white"></i>
+        </div>
+        <div>
+          <p class="text-xs font-medium text-emerald-100 uppercase tracking-wider">Neto a Pagar Trabajador</p>
+          <h3 id="card-neto" class="text-2xl font-black tracking-tight text-white">$0</h3>
+          <p class="text-[11px] text-emerald-100/90">Efectivo a consignar</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Grid: Inputs (Left) and Results (Right) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <!-- Left Column: Inputs Form -->
+      <section class="lg:col-span-6 space-y-6">
+        
+        <!-- Tarjeta 1: Parámetros Básicos -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
+          <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="user-check" class="w-5 h-5 text-emerald-600"></i>
+              <h2 class="font-bold text-slate-800">1. Parámetros Base del Salario</h2>
+            </div>
+            <span class="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">General</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Sueldo Básico -->
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1" for="input-sueldo">
+                Sueldo Básico Mensual (COP) *
+              </label>
+              <div class="relative rounded-xl shadow-sm">
+                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+                  <span class="text-slate-400 font-semibold">$</span>
+                </div>
+                <input type="number" id="input-sueldo" value="1423500" min="0" step="1000"
+                  class="block w-full rounded-xl border border-slate-300 pl-8 pr-4 py-2.5 text-slate-900 text-sm font-semibold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition duration-150">
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Sueldo pactado en contrato laboral (Ej: SMLMV de referencia).</p>
+            </div>
+
+            <!-- Jornada Mensual Estándar -->
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1" for="input-horas-mes">
+                Horas Estándar Mes *
+              </label>
+              <div class="relative">
+                <input type="number" id="input-horas-mes" value="230" min="1" max="300"
+                  class="block w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-slate-900 text-sm font-semibold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none">
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Ley 2101 reducción de jornada (ej: 230 o 220 hrs).</p>
+            </div>
+
+            <!-- Días Laborados -->
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1" for="input-dias">
+                Días Laborados en Mes *
+              </label>
+              <input type="number" id="input-dias" value="30" min="1" max="30"
+                class="block w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-slate-900 text-sm font-semibold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none">
+              <p class="text-[11px] text-slate-400 mt-1">Base comercial: 30 días mes completo.</p>
+            </div>
+          </div>
+
+          <!-- Auxilio de Transporte Section -->
+          <div class="mt-5 p-4 rounded-xl bg-slate-50 border border-slate-200/70">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center space-x-2">
+                <input type="checkbox" id="check-auxilio" checked
+                  class="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500 cursor-pointer">
+                <label for="check-auxilio" class="text-xs font-bold text-slate-700 cursor-pointer">
+                  Auxilio de Transporte Legal
+                </label>
+              </div>
+              <span id="auxilio-status-badge" class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Aplica</span>
+            </div>
+            <div class="flex items-center space-x-3">
+              <span class="text-xs text-slate-500">Monto fijado mensual:</span>
+              <div class="relative w-40">
+                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-400 text-xs">$</div>
+                <input type="number" id="input-auxilio-valor" value="200000" min="0" step="500"
+                  class="w-full pl-6 pr-2 py-1 text-xs font-bold rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-2">Obligatorio por ley para salarios de hasta 2 salarios mínimos (aprox. $2.847.000 COP).</p>
+          </div>
+        </div>
+
+        <!-- Tarjeta 2: Registro Detallado de Horas y Recargos -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
+          <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="clock-4" class="w-5 h-5 text-emerald-600"></i>
+              <h2 class="font-bold text-slate-800">2. Registro de Horas y Novedades</h2>
+            </div>
+            <span class="text-xs text-slate-400">Cantidades en horas</span>
+          </div>
+
+          <div class="space-y-3.5">
+            <!-- Recargo Nocturno Ordinario -->
+            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100/70 transition">
+              <div>
+                <p class="text-xs font-bold text-slate-800">Recargo Nocturno Ordinario</p>
+                <p class="text-[11px] text-slate-500">Horario 9:00 PM a 6:00 AM (+35%)</p>
+              </div>
+              <div class="flex items-center space-x-2">
+                <input type="number" id="hrs-recargo-noc" value="0" min="0" max="240"
+                  class="w-20 px-2 py-1.5 text-center text-sm font-bold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500 outline-none">
+                <span class="text-xs text-slate-400 font-medium w-6">hrs</span>
+              </div>
+            </div>
+
+            <!-- Hora Extra Diurna -->
+            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100/70 transition">
+              <div>
+                <p class="text-xs font-bold text-slate-800">Hora Extra Diurna (HED)</p>
+                <p class="text-[11px] text-slate-500">Trabajo extra 6:00 AM a 9:00 PM (Factor 1.25)</p>
+              </div>
+              <div class="flex items-center space-x-2">
+                <input type="number" id="hrs-extra-diurna" value="0" min="0" max="240"
+                  class="w-20 px-2 py-1.5 text-center text-sm font-bold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500 outline-none">
+                <span class="text-xs text-slate-400 font-medium w-6">hrs</span>
+              </div>
+            </div>
+
+            <!-- Hora Extra Nocturna -->
+            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100/70 transition">
+              <div>
+                <p class="text-xs font-bold text-slate-800">Hora Extra Nocturna (HEN)</p>
+                <p class="text-[11px] text-slate-500">Trabajo extra 9:00 PM a 6:00 AM (Factor 1.75)</p>
+              </div>
+              <div class="flex items-center space-x-2">
+                <input type="number" id="hrs-extra-noc" value="0" min="0" max="240"
+                  class="w-20 px-2 py-1.5 text-center text-sm font-bold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500 outline-none">
+                <span class="text-xs text-slate-400 font-medium w-6">hrs</span>
+              </div>
+            </div>
+
+            <!-- Dominical / Festivo Ordinario Diurno -->
+            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100/70 transition">
+              <div>
+                <p class="text-xs font-bold text-slate-800">Dominical / Festivo Diurno (HDFD)</p>
+                <p class="text-[11px] text-slate-500">Jornada ordinaria en domingo o festivo (Factor 1.75)</p>
+              </div>
+              <div class="flex items-center space-x-2">
+                <input type="number" id="hrs-festivo-diurno" value="0" min="0" max="240"
+                  class="w-20 px-2 py-1.5 text-center text-sm font-bold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500 outline-none">
+                <span class="text-xs text-slate-400 font-medium w-6">hrs</span>
+              </div>
+            </div>
+
+            <!-- Dominical / Festivo Ordinario Nocturno -->
+            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100/70 transition">
+              <div>
+                <p class="text-xs font-bold text-slate-800">Dominical / Festivo Nocturno (HDFN)</p>
+                <p class="text-[11px] text-slate-500">Ordinaria dom/festivo de noche (Factor 2.10)</p>
+              </div>
+              <div class="flex items-center space-x-2">
+                <input type="number" id="hrs-festivo-noc" value="0" min="0" max="240"
+                  class="w-20 px-2 py-1.5 text-center text-sm font-bold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500 outline-none">
+                <span class="text-xs text-slate-400 font-medium w-6">hrs</span>
+              </div>
+            </div>
+
+            <!-- Extra Dominical Diurna -->
+            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100/70 transition">
+              <div>
+                <p class="text-xs font-bold text-slate-800">Extra Dominical Diurna (HEDD)</p>
+                <p class="text-[11px] text-slate-500">Horas extras diurnas en dom/festivo (Factor 2.00)</p>
+              </div>
+              <div class="flex items-center space-x-2">
+                <input type="number" id="hrs-extra-festivo-diurna" value="0" min="0" max="240"
+                  class="w-20 px-2 py-1.5 text-center text-sm font-bold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500 outline-none">
+                <span class="text-xs text-slate-400 font-medium w-6">hrs</span>
+              </div>
+            </div>
+
+            <!-- Extra Dominical Nocturna -->
+            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100/70 transition">
+              <div>
+                <p class="text-xs font-bold text-slate-800">Extra Dominical Nocturna (HEDN)</p>
+                <p class="text-[11px] text-slate-500">Horas extras nocturnas en dom/festivo (Factor 2.50)</p>
+              </div>
+              <div class="flex items-center space-x-2">
+                <input type="number" id="hrs-extra-festivo-noc" value="0" min="0" max="240"
+                  class="w-20 px-2 py-1.5 text-center text-sm font-bold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500 outline-none">
+                <span class="text-xs text-slate-400 font-medium w-6">hrs</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarjeta 3: Otras Deducciones Opcionales -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
+          <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="minus-circle" class="w-5 h-5 text-amber-500"></i>
+              <h2 class="font-bold text-slate-800">3. Otras Deducciones del Empleado</h2>
+            </div>
+            <span class="text-xs text-slate-400">Opcional</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1" for="ded-libranza">
+                Libranzas o Créditos (COP)
+              </label>
+              <input type="number" id="ded-libranza" value="0" min="0"
+                class="block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-slate-900 text-sm font-semibold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1" for="ded-otros">
+                Embargos / Sindicato / Otros (COP)
+              </label>
+              <input type="number" id="ded-otros" value="0" min="0"
+                class="block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-slate-900 text-sm font-semibold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Detailed Liquidation & Tabs -->
+      <section class="lg:col-span-6 space-y-6">
+        
+        <!-- Toggle Tabs -->
+        <div class="bg-white p-1 rounded-2xl border border-slate-200 shadow-sm flex no-print">
+          <button id="tab-btn-empleado" class="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-center transition-all bg-emerald-600 text-white shadow-sm flex items-center justify-center space-x-2">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
+            <span>Liquidación Trabajador</span>
+          </button>
+          <button id="tab-btn-empleador" class="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-center text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center space-x-2">
+            <i data-lucide="building" class="w-4 h-4"></i>
+            <span>Cargas del Empleador</span>
+          </button>
+        </div>
+
+        <!-- View 1: Liquidación Trabajador (Recibo y desglose) -->
+        <div id="view-empleado" class="space-y-6">
+          <div id="print-receipt" class="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden p-6">
+            
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200 mb-6">
+              <div>
+                <h3 class="text-base font-bold text-slate-900">Volante de Liquidación Laboral</h3>
+                <p class="text-xs text-slate-500">Conforme al Código Sustantivo del Trabajo de Colombia</p>
+              </div>
+              <div class="text-right">
+                <span class="inline-block text-[11px] font-mono font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md">
+                  Mes Comercial (30 días)
+                </span>
+              </div>
+            </div>
+
+            <!-- Table of Devengos -->
+            <div class="mb-6">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center justify-between">
+                <span>Devengos Salariales & Horas</span>
+                <span class="text-[11px] text-emerald-600 font-semibold">Haberes</span>
+              </h4>
+              <div class="overflow-x-auto border border-slate-100 rounded-xl">
+                <table class="min-w-full divide-y divide-slate-100 text-left text-xs">
+                  <thead class="bg-slate-50 text-slate-600 font-semibold">
+                    <tr>
+                      <th class="py-2.5 px-3">Concepto</th>
+                      <th class="py-2.5 px-2 text-center">Cant.</th>
+                      <th class="py-2.5 px-2 text-right">V. Unit</th>
+                      <th class="py-2.5 px-3 text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-devengos-body" class="divide-y divide-slate-100 font-medium text-slate-700">
+                    <!-- Filas dinámicas generadas con JS -->
+                  </tbody>
+                  <tfoot class="bg-slate-50/80 font-bold text-slate-900">
+                    <tr>
+                      <td colspan="3" class="py-2.5 px-3 text-right">Total Devengado Bruto:</td>
+                      <td id="receipt-total-devengado" class="py-2.5 px-3 text-right text-emerald-600 font-extrabold text-sm">$0</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            <!-- Table of Deducciones -->
+            <div class="mb-6">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center justify-between">
+                <span>Deducciones de Ley (A cargo del Trabajador)</span>
+                <span class="text-[11px] text-amber-600 font-semibold">Descuentos</span>
+              </h4>
+              <div class="overflow-x-auto border border-slate-100 rounded-xl">
+                <table class="min-w-full divide-y divide-slate-100 text-left text-xs">
+                  <thead class="bg-slate-50 text-slate-600 font-semibold">
+                    <tr>
+                      <th class="py-2.5 px-3">Concepto</th>
+                      <th class="py-2.5 px-2 text-center">Tasa %</th>
+                      <th class="py-2.5 px-2 text-right">Base IBC</th>
+                      <th class="py-2.5 px-3 text-right">Monto</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-deducciones-body" class="divide-y divide-slate-100 font-medium text-slate-700">
+                    <!-- Filas dinámicas generadas con JS -->
+                  </tbody>
+                  <tfoot class="bg-slate-50/80 font-bold text-slate-900">
+                    <tr>
+                      <td colspan="3" class="py-2.5 px-3 text-right">Total Deducciones:</td>
+                      <td id="receipt-total-deducciones" class="py-2.5 px-3 text-right text-amber-600 font-extrabold text-sm">$0</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            <!-- Resumen Final Neto -->
+            <div class="p-4 bg-slate-900 text-white rounded-xl flex items-center justify-between">
+              <div>
+                <p class="text-xs text-slate-400 uppercase font-semibold">Neto a Recibir</p>
+                <p class="text-[11px] text-slate-400">Total Devengado - Deducciones</p>
+              </div>
+              <div class="text-right">
+                <span id="receipt-neto-final" class="text-2xl font-black text-emerald-400">$0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- View 2: Cargas del Empleador (Provisiones, Parafiscales y Seguridad Social) -->
+        <div id="view-empleador" class="space-y-6 hidden">
+          <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6">
+            <div class="pb-4 border-b border-slate-200 mb-6">
+              <h3 class="text-base font-bold text-slate-900">Costo Real y Provisiones de la Empresa</h3>
+              <p class="text-xs text-slate-500">Cálculo de provisiones para prestaciones y seguridad social a cargo del empleador</p>
+            </div>
+
+            <!-- Prestaciones Sociales -->
+            <div class="mb-6">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                Provisiones Prestaciones Sociales (Mensual)
+              </h4>
+              <div class="space-y-2 border border-slate-100 p-3 rounded-xl bg-slate-50 text-xs">
+                <div class="flex justify-between py-1">
+                  <span class="text-slate-600">Prima de Servicios (8.33%):</span>
+                  <span id="prov-prima" class="font-bold text-slate-800">$0</span>
+                </div>
+                <div class="flex justify-between py-1">
+                  <span class="text-slate-600">Cesantías (8.33%):</span>
+                  <span id="prov-cesantias" class="font-bold text-slate-800">$0</span>
+                </div>
+                <div class="flex justify-between py-1">
+                  <span class="text-slate-600">Intereses sobre Cesantías (1% mensual / 12% anual):</span>
+                  <span id="prov-intereses" class="font-bold text-slate-800">$0</span>
+                </div>
+                <div class="flex justify-between py-1">
+                  <span class="text-slate-600">Vacaciones (4.17% sobre sueldo base):</span>
+                  <span id="prov-vacaciones" class="font-bold text-slate-800">$0</span>
+                </div>
+                <div class="border-t border-slate-200 pt-2 flex justify-between font-bold text-slate-900">
+                  <span>Subtotal Prestaciones Sociales:</span>
+                  <span id="subtotal-prestaciones" class="text-emerald-700">$0</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Seguridad Social Empleador -->
+            <div class="mb-6">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                Seguridad Social y Parafiscales Empleador
+              </h4>
+              <div class="space-y-2 border border-slate-100 p-3 rounded-xl bg-slate-50 text-xs">
+                <div class="flex justify-between py-1">
+                  <span class="text-slate-600">Pensión Empleador (12%):</span>
+                  <span id="emp-pension" class="font-bold text-slate-800">$0</span>
+                </div>
+                <div class="flex justify-between py-1">
+                  <span class="text-slate-600">Salud Empleador (8.5% - *Exonerable Art. 114-1 E.T.*):</span>
+                  <span id="emp-salud" class="font-bold text-slate-800">$0</span>
+                </div>
+                <div class="flex justify-between py-1">
+                  <span class="text-slate-600">ARL Riesgo I estándar (0.522%):</span>
+                  <span id="emp-arl" class="font-bold text-slate-800">$0</span>
+                </div>
+                <div class="flex justify-between py-1">
+                  <span class="text-slate-600">Caja de Compensación Familiar (4%):</span>
+                  <span id="emp-caja" class="font-bold text-slate-800">$0</span>
+                </div>
+                <div class="flex justify-between py-1">
+                  <span class="text-slate-600">SENA + ICBF (5% - *Exonerable Art. 114-1 E.T.*):</span>
+                  <span id="emp-sena-icbf" class="font-bold text-slate-800">$0</span>
+                </div>
+                <div class="border-t border-slate-200 pt-2 flex justify-between font-bold text-slate-900">
+                  <span>Subtotal Cargas Empleador:</span>
+                  <span id="subtotal-cargas-emp" class="text-emerald-700">$0</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Costo Total Empleador -->
+            <div class="p-4 bg-slate-900 text-white rounded-xl flex items-center justify-between">
+              <div>
+                <p class="text-xs text-slate-400 uppercase font-semibold">Costo Total Mensual Trabajador</p>
+                <p class="text-[11px] text-slate-400">Total Devengado + Prestaciones + Cargas</p>
+              </div>
+              <div class="text-right">
+                <span id="costo-total-empresa" class="text-2xl font-black text-teal-400">$0</span>
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-2 italic">
+              * Nota: La exoneración de aportes patronales a Salud, SENA e ICBF aplica a personas jurídicas y naturales con 2 o más empleados para trabajadores con ingresos inferiores a 10 SMLMV (Art. 114-1 E.T.).
+            </p>
+          </div>
+        </div>
+
+        <!-- Help / Legal Badges Card -->
+        <div class="bg-emerald-50/70 border border-emerald-100 rounded-2xl p-5 no-print">
+          <div class="flex items-start space-x-3">
+            <i data-lucide="info" class="w-5 h-5 text-emerald-700 flex-shrink-0 mt-0.5"></i>
+            <div>
+              <h4 class="text-xs font-bold text-emerald-950 uppercase">Base Legal Aplicada (CST)</h4>
+              <p class="text-xs text-emerald-800 mt-1 leading-relaxed">
+                El valor de cada hora extra y recargo se calcula multiplicando el <strong>Valor Hora Ordinaria (VHO)</strong> por el factor legal estipulado en los artículos 168 y 179 del Código Sustantivo del Trabajo. El auxilio de transporte no hace base para salud, pensión ni parafiscales.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400 no-print mt-auto">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>Calculadora de Nómina adaptada a la legislación colombiana vigente.</p>
+      <p class="font-medium">Código Sustantivo del Trabajo • Ley 2101 de 2021</p>
+    </div>
+  </footer>
+
+  <!-- Core JavaScript Logic -->
+  <script>
+    // Referencias a Elementos DOM
+    const inputSueldo = document.getElementById('input-sueldo');
+    const inputHorasMes = document.getElementById('input-horas-mes');
+    const inputDias = document.getElementById('input-dias');
+    const checkAuxilio = document.getElementById('check-auxilio');
+    const inputAuxilioValor = document.getElementById('input-auxilio-valor');
+    const auxilioStatusBadge = document.getElementById('auxilio-status-badge');
+
+    // Horas y novedades
+    const hrsRecargoNoc = document.getElementById('hrs-recargo-noc');
+    const hrsExtraDiurna = document.getElementById('hrs-extra-diurna');
+    const hrsExtraNoc = document.getElementById('hrs-extra-noc');
+    const hrsFestivoDiurno = document.getElementById('hrs-festivo-diurno');
+    const hrsFestivoNoc = document.getElementById('hrs-festivo-noc');
+    const hrsExtraFestivoDiurna = document.getElementById('hrs-extra-festivo-diurna');
+    const hrsExtraFestivoNoc = document.getElementById('hrs-extra-festivo-noc');
+
+    // Otras deducciones
+    const dedLibranza = document.getElementById('ded-libranza');
+    const dedOtros = document.getElementById('ded-otros');
+
+    // Tarjetas Superiores
+    const cardVho = document.getElementById('card-vho');
+    const cardVhoDetail = document.getElementById('card-vho-detail');
+    const cardDevengado = document.getElementById('card-devengado');
+    const cardDeducciones = document.getElementById('card-deducciones');
+    const cardNeto = document.getElementById('card-neto');
+
+    // Tablas de Recibo
+    const tableDevengosBody = document.getElementById('table-devengos-body');
+    const tableDeduccionesBody = document.getElementById('table-deducciones-body');
+    const receiptTotalDevengado = document.getElementById('receipt-total-devengado');
+    const receiptTotalDeducciones = document.getElementById('receipt-total-deducciones');
+    const receiptNetoFinal = document.getElementById('receipt-neto-final');
+
+    // Provisiones Empleador
+    const provPrima = document.getElementById('prov-prima');
+    const provCesantias = document.getElementById('prov-cesantias');
+    const provIntereses = document.getElementById('prov-intereses');
+    const provVacaciones = document.getElementById('prov-vacaciones');
+    const subtotalPrestaciones = document.getElementById('subtotal-prestaciones');
+    const empPension = document.getElementById('emp-pension');
+    const empSalud = document.getElementById('emp-salud');
+    const empArl = document.getElementById('emp-arl');
+    const empCaja = document.getElementById('emp-caja');
+    const empSenaIcbf = document.getElementById('emp-sena-icbf');
+    const subtotalCargasEmp = document.getElementById('subtotal-cargas-emp');
+    const costoTotalEmpresa = document.getElementById('costo-total-empresa');
+
+    // Botones de Tabs y Acciones
+    const tabBtnEmpleado = document.getElementById('tab-btn-empleado');
+    const tabBtnEmpleador = document.getElementById('tab-btn-empleador');
+    const viewEmpleado = document.getElementById('view-empleado');
+    const viewEmpleador = document.getElementById('view-empleador');
+
+    const btnDemo = document.getElementById('btn-demo');
+    const btnReset = document.getElementById('btn-reset');
+    const btnPrint = document.getElementById('btn-print');
+
+    // Formateador de moneda en pesos colombianos (COP)
+    const formatCOP = (val) => {
+      return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        maximumFractionDigits: 0
+      }).format(val || 0);
+    };
+
+    // Función principal reactiva de cálculo
+    function calcularNomina() {
+      // 1. Obtención de inputs principales con validación de no negatividad
+      const sueldoBasico = Math.max(0, parseFloat(inputSueldo.value) || 0);
+      const horasMes = Math.max(1, parseFloat(inputHorasMes.value) || 230);
+      const diasLaborados = Math.max(0, Math.min(30, parseFloat(inputDias.value) || 30));
+
+      // 2. Cálculo del Valor Hora Ordinaria (VHO)
+      // Conforme a la legislación laboral: VHO = Sueldo / Horas mensuales
+      const vho = sueldoBasico / horasMes;
+      cardVho.textContent = formatCOP(vho);
+      cardVhoDetail.textContent = `$${Math.round(sueldoBasico).toLocaleString()} / ${horasMes}h`;
+
+      // 3. Proporcional de Salario Básico según días trabajados (base mes 30 días)
+      const sueldoProporcional = (sueldoBasico / 30) * diasLaborados;
+
+      // 4. Cálculo de Horas Extras y Recargos según el Código Sustantivo del Trabajo
+      const horasItems = [
+        {
+          nombre: 'Recargo Nocturno Ordinario (RN)',
+          norma: 'Art. 168 CST (+35%)',
+          factor: 0.35,
+          cant: Math.max(0, parseFloat(hrsRecargoNoc.value) || 0)
+        },
+        {
+          nombre: 'Hora Extra Diurna (HED)',
+          norma: 'Art. 168 CST (Factor 1.25)',
+          factor: 1.25,
+          cant: Math.max(0, parseFloat(hrsExtraDiurna.value) || 0)
+        },
+        {
+          nombre: 'Hora Extra Nocturna (HEN)',
+          norma: 'Art. 168 CST (Factor 1.75)',
+          factor: 1.75,
+          cant: Math.max(0, parseFloat(hrsExtraNoc.value) || 0)
+        },
+        {
+          nombre: 'Dominical/Festivo Diurno (HDFD)',
+          norma: 'Art. 179 CST (Factor 1.75)',
+          factor: 1.75,
+          cant: Math.max(0, parseFloat(hrsFestivoDiurno.value) || 0)
+        },
+        {
+          nombre: 'Dominical/Festivo Nocturno (HDFN)',
+          norma: 'Art. 179 CST (Factor 2.10)',
+          factor: 2.10,
+          cant: Math.max(0, parseFloat(hrsFestivoNoc.value) || 0)
+        },
+        {
+          nombre: 'Extra Dominical Diurna (HEDD)',
+          norma: 'Arts. 168 y 179 (Factor 2.00)',
+          factor: 2.00,
+          cant: Math.max(0, parseFloat(hrsExtraFestivoDiurna.value) || 0)
+        },
+        {
+          nombre: 'Extra Dominical Nocturna (HEDN)',
+          norma: 'Arts. 168 y 179 (Factor 2.50)',
+          factor: 2.50,
+          cant: Math.max(0, parseFloat(hrsExtraFestivoNoc.value) || 0)
+        }
+      ];
+
+      let totalHorasExtrasValor = 0;
+      const devengosRows = [
+        {
+          concepto: `Salario Básico (${diasLaborados} días)`,
+          sub: 'Sueldo ordinario proporcional',
+          cant: `${diasLaborados}d`,
+          vUnit: sueldoBasico / 30,
+          total: sueldoProporcional
+        }
+      ];
+
+      horasItems.forEach(item => {
+        if (item.cant > 0) {
+          const valorUnitario = vho * item.factor;
+          const subtotalItem = valorUnitario * item.cant;
+          totalHorasExtrasValor += subtotalItem;
+          devengosRows.push({
+            concepto: item.nombre,
+            sub: item.norma,
+            cant: `${item.cant}h`,
+            vUnit: valorUnitario,
+            total: subtotalItem
+          });
+        }
+      });
+
+      // 5. Auxilio de Transporte
+      // Tope legal de 2 SMLMV de referencia
+      const smlmvReferencia = 1423500; // Valor de referencia aproximado
+      const limiteDosSalarios = smlmvReferencia * 2;
+      const auxilioMensualFijo = Math.max(0, parseFloat(inputAuxilioValor.value) || 0);
+      
+      let auxilioTransporteLiquidado = 0;
+      if (checkAuxilio.checked) {
+        if (sueldoBasico <= limiteDosSalarios) {
+          auxilioTransporteLiquidado = (auxilioMensualFijo / 30) * diasLaborados;
+          auxilioStatusBadge.textContent = 'Aplica';
+          auxilioStatusBadge.className = 'text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700';
+        } else {
+          auxilioTransporteLiquidado = 0;
+          auxilioStatusBadge.textContent = 'Supera 2 SMLMV';
+          auxilioStatusBadge.className = 'text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700';
+        }
+      } else {
+        auxilioStatusBadge.textContent = 'Desactivado';
+        auxilioStatusBadge.className = 'text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600';
+      }
+
+      if (auxilioTransporteLiquidado > 0) {
+        devengosRows.push({
+          concepto: 'Auxilio de Transporte',
+          sub: 'Ley 15 de 1959 (Proporcional a días)',
+          cant: `${diasLaborados}d`,
+          vUnit: auxilioMensualFijo / 30,
+          total: auxilioTransporteLiquidado
+        });
+      }
+
+      // 6. Base IBC (Ingreso Base de Cotización)
+      // Suma de devengos salariales (NO incluye Auxilio de Transporte)
+      const ibc = sueldoProporcional + totalHorasExtrasValor;
+
+      // 7. Deducciones al Trabajador
+      const saludTrabajador = ibc * 0.04;
+      const pensionTrabajador = ibc * 0.04;
+
+      // Fondo de Solidaridad Pensional (1% si devenga >= 4 SMLMV)
+      let fondoSolidaridad = 0;
+      if (ibc >= (smlmvReferencia * 4)) {
+        fondoSolidaridad = ibc * 0.01;
+      }
+
+      const deduccionLibranza = Math.max(0, parseFloat(dedLibranza.value) || 0);
+      const deduccionOtros = Math.max(0, parseFloat(dedOtros.value) || 0);
+
+      const deduccionesRows = [
+        {
+          concepto: 'Aporte a Salud (EPS)',
+          tasa: '4.0%',
+          base: ibc,
+          monto: saludTrabajador
+        },
+        {
+          concepto: 'Aporte a Pensión (AFP)',
+          tasa: '4.0%',
+          base: ibc,
+          monto: pensionTrabajador
+        }
+      ];
+
+      if (fondoSolidaridad > 0) {
+        deduccionesRows.push({
+          concepto: 'Fondo de Solidaridad Pensional',
+          tasa: '1.0%',
+          base: ibc,
+          monto: fondoSolidaridad
+        });
+      }
+
+      if (deduccionLibranza > 0) {
+        deduccionesRows.push({
+          concepto: 'Libranza o Cuota de Crédito',
+          tasa: 'Fijo',
+          base: deduccionLibranza,
+          monto: deduccionLibranza
+        });
+      }
+
+      if (deduccionOtros > 0) {
+        deduccionesRows.push({
+          concepto: 'Embargos / Otras retenciones',
+          tasa: 'Fijo',
+          base: deduccionOtros,
+          monto: deduccionOtros
+        });
+      }
+
+      // 8. Totales Devengado, Deducciones y Neto
+      const totalDevengado = ibc + auxilioTransporteLiquidado;
+      const totalDeducciones = saludTrabajador + pensionTrabajador + fondoSolidaridad + deduccionLibranza + deduccionOtros;
+      const netoPagar = totalDevengado - totalDeducciones;
+
+      // Actualizar Resumen en Tarjetas
+      cardDevengado.textContent = formatCOP(totalDevengado);
+      cardDeducciones.textContent = formatCOP(totalDeducciones);
+      cardNeto.textContent = formatCOP(netoPagar);
+
+      // Renderizar Tabla de Devengos
+      tableDevengosBody.innerHTML = '';
+      devengosRows.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="py-2.5 px-3">
+            <div class="font-bold text-slate-800">${row.concepto}</div>
+            <div class="text-[10px] text-slate-400">${row.sub}</div>
+          </td>
+          <td class="py-2.5 px-2 text-center font-mono text-slate-600">${row.cant}</td>
+          <td class="py-2.5 px-2 text-right font-mono text-slate-600">${formatCOP(row.vUnit)}</td>
+          <td class="py-2.5 px-3 text-right font-bold text-slate-900">${formatCOP(row.total)}</td>
+        `;
+        tableDevengosBody.appendChild(tr);
+      });
+
+      // Renderizar Tabla de Deducciones
+      tableDeduccionesBody.innerHTML = '';
+      deduccionesRows.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-medium text-slate-800">${row.concepto}</td>
+          <td class="py-2.5 px-2 text-center text-slate-500 font-mono">${row.tasa}</td>
+          <td class="py-2.5 px-2 text-right font-mono text-slate-500">${formatCOP(row.base)}</td>
+          <td class="py-2.5 px-3 text-right font-bold text-red-600">-${formatCOP(row.monto)}</td>
+        `;
+        tableDeduccionesBody.appendChild(tr);
+      });
+
+      receiptTotalDevengado.textContent = formatCOP(totalDevengado);
+      receiptTotalDeducciones.textContent = `-${formatCOP(totalDeducciones)}`;
+      receiptNetoFinal.textContent = formatCOP(netoPagar);
+
+      // 9. Cálculos y Provisiones para la Empresa (Empleador)
+      // Base Prestaciones = IBC + Auxilio de Transporte
+      const basePrestaciones = ibc + auxilioTransporteLiquidado;
+      
+      const vPrima = basePrestaciones * 0.0833;
+      const vCesantias = basePrestaciones * 0.0833;
+      const vInteresesCesantias = vCesantias * 0.12; // 12% anual sobre cesantías
+      const vVacaciones = sueldoProporcional * 0.0417; // Vacaciones solo sobre básico
+
+      const totalPrestaciones = vPrima + vCesantias + vInteresesCesantias + vVacaciones;
+
+      // Cargas Seguridad Social & Parafiscales Empleador
+      const pPensionEmp = ibc * 0.12; // 12% Pensión
+      // Exoneración Art 114-1: Si devenga menos de 10 salarios mínimos, salud y SENA/ICBF pueden ser $0
+      const esExonerable = ibc < (smlmvReferencia * 10);
+      const pSaludEmp = esExonerable ? 0 : (ibc * 0.085);
+      const pArlEmp = ibc * 0.00522; // Riesgo I 0.522%
+      const pCajaEmp = ibc * 0.04; // 4% Caja de compensación
+      const pSenaIcbfEmp = esExonerable ? 0 : (ibc * 0.05);
+
+      const totalCargasEmp = pPensionEmp + pSaludEmp + pArlEmp + pCajaEmp + pSenaIcbfEmp;
+      const totalCostoEmpresa = totalDevengado + totalPrestaciones + totalCargasEmp;
+
+      // Renderizar Provisiones
+      provPrima.textContent = formatCOP(vPrima);
+      provCesantias.textContent = formatCOP(vCesantias);
+      provIntereses.textContent = formatCOP(vInteresesCesantias);
+      provVacaciones.textContent = formatCOP(vVacaciones);
+      subtotalPrestaciones.textContent = formatCOP(totalPrestaciones);
+
+      empPension.textContent = formatCOP(pPensionEmp);
+      empSalud.textContent = esExonerable ? '$0 (Exonerado)' : formatCOP(pSaludEmp);
+      empArl.textContent = formatCOP(pArlEmp);
+      empCaja.textContent = formatCOP(pCajaEmp);
+      empSenaIcbf.textContent = esExonerable ? '$0 (Exonerado)' : formatCOP(pSenaIcbfEmp);
+      subtotalCargasEmp.textContent = formatCOP(totalCargasEmp);
+
+      costoTotalEmpresa.textContent = formatCOP(totalCostoEmpresa);
+    }
+
+    // Event Listeners para reactividad en tiempo real
+    const allInputs = [
+      inputSueldo, inputHorasMes, inputDias, checkAuxilio, inputAuxilioValor,
+      hrsRecargoNoc, hrsExtraDiurna, hrsExtraNoc, hrsFestivoDiurno,
+      hrsFestivoNoc, hrsExtraFestivoDiurna, hrsExtraFestivoNoc,
+      dedLibranza, dedOtros
+    ];
+
+    allInputs.forEach(elem => {
+      elem.addEventListener('input', calcularNomina);
+      elem.addEventListener('change', calcularNomina);
+    });
+
+    // Pestañas (Tabs) Trabajador / Empleador
+    tabBtnEmpleado.addEventListener('click', () => {
+      tabBtnEmpleado.classList.add('bg-emerald-600', 'text-white', 'shadow-sm');
+      tabBtnEmpleado.classList.remove('text-slate-600');
+      tabBtnEmpleador.classList.remove('bg-emerald-600', 'text-white', 'shadow-sm');
+      tabBtnEmpleador.classList.add('text-slate-600');
+
+      viewEmpleado.classList.remove('hidden');
+      viewEmpleador.classList.add('hidden');
+    });
+
+    tabBtnEmpleador.addEventListener('click', () => {
+      tabBtnEmpleador.classList.add('bg-emerald-600', 'text-white', 'shadow-sm');
+      tabBtnEmpleador.classList.remove('text-slate-600');
+      tabBtnEmpleado.classList.remove('bg-emerald-600', 'text-white', 'shadow-sm');
+      tabBtnEmpleado.classList.add('text-slate-600');
+
+      viewEmpleador.classList.remove('hidden');
+      viewEmpleado.classList.add('hidden');
+    });
+
+    // Cargar datos de prueba (Demo)
+    btnDemo.addEventListener('click', () => {
+      inputSueldo.value = 1600000;
+      inputHorasMes.value = 230;
+      inputDias.value = 30;
+      checkAuxilio.checked = true;
+      inputAuxilioValor.value = 200000;
+      hrsRecargoNoc.value = 8;
+      hrsExtraDiurna.value = 4;
+      hrsExtraNoc.value = 2;
+      hrsFestivoDiurno.value = 8;
+      hrsFestivoNoc.value = 0;
+      hrsExtraFestivoDiurna.value = 0;
+      hrsExtraFestivoNoc.value = 0;
+      dedLibranza.value = 50000;
+      dedOtros.value = 0;
+      calcularNomina();
+    });
+
+    // Limpiar campos (Reset)
+    btnReset.addEventListener('click', () => {
+      inputSueldo.value = 0;
+      inputHorasMes.value = 230;
+      inputDias.value = 30;
+      checkAuxilio.checked = true;
+      inputAuxilioValor.value = 200000;
+      hrsRecargoNoc.value = 0;
+      hrsExtraDiurna.value = 0;
+      hrsExtraNoc.value = 0;
+      hrsFestivoDiurno.value = 0;
+      hrsFestivoNoc.value = 0;
+      hrsExtraFestivoDiurna.value = 0;
+      hrsExtraFestivoNoc.value = 0;
+      dedLibranza.value = 0;
+      dedOtros.value = 0;
+      calcularNomina();
+    });
+
+    // Imprimir o guardar como PDF
+    btnPrint.addEventListener('click', () => {
+      window.print();
+    });
+
+    // Inicialización al cargar la página
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      calcularNomina();
+    });
+  </script>
+</body>
+</html>
